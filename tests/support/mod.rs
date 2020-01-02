@@ -19,21 +19,6 @@ use self::futures::Future;
 
 use redis::{RedisResult, Value};
 
-pub fn current_thread_runtime() -> tokio::runtime::Runtime {
-    tokio::runtime::Builder::new()
-        .basic_scheduler()
-        .enable_io()
-        .build()
-        .unwrap()
-}
-
-pub fn block_on_all<F>(f: F) -> F::Output
-where
-    F: Future,
-{
-    current_thread_runtime().block_on(f)
-}
-
 #[derive(PartialEq)]
 enum ServerType {
     Tcp,
@@ -172,12 +157,11 @@ impl TestContext {
         self.server.stop();
     }
 
-    #[cfg(feature = "tokio-rt-core")]
     pub fn multiplexed_async_connection(
         &self,
     ) -> impl Future<Output = RedisResult<redis::aio::MultiplexedConnection>> {
         let client = self.client.clone();
-        async move { client.get_multiplexed_tokio_connection().await }
+        async move { client.get_multiplexed_connection().await }
     }
 }
 

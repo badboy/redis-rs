@@ -8,6 +8,7 @@ mod support;
 use support::*;
 
 use futures::{prelude::*, stream};
+use async_std::task;
 
 use criterion::{Bencher, Benchmark, Criterion, Throughput};
 
@@ -31,13 +32,11 @@ fn bench_simple_getsetdel(b: &mut Bencher) {
 
 fn bench_simple_getsetdel_async(b: &mut Bencher) {
     let client = get_client();
-    let mut runtime = current_thread_runtime();
     let con = client.get_async_connection();
-    let mut con = runtime.block_on(con).unwrap();
+    let mut con = task::block_on(con).unwrap();
 
     b.iter(|| {
-        runtime
-            .block_on(async {
+            task::block_on(async {
                 let key = "test_key";
                 let () = redis::cmd("SET")
                     .arg(key)
@@ -118,39 +117,32 @@ fn bench_long_pipeline(b: &mut Bencher) {
 
 fn bench_async_long_pipeline(b: &mut Bencher) {
     let client = get_client();
-    let mut runtime = current_thread_runtime();
-    let mut con = runtime.block_on(client.get_async_connection()).unwrap();
+    let mut con = task::block_on(client.get_async_connection()).unwrap();
 
     let pipe = long_pipeline();
 
     b.iter(|| {
-        let () = runtime
-            .block_on(async { pipe.query_async(&mut con).await })
+        let () = task::block_on(async { pipe.query_async(&mut con).await })
             .unwrap();
     });
 }
 
 fn bench_multiplexed_async_long_pipeline(b: &mut Bencher) {
     let client = get_client();
-    let mut runtime = current_thread_runtime();
-    let mut con = runtime
-        .block_on(client.get_multiplexed_tokio_connection())
+    let mut con = task::block_on(client.get_multiplexed_connection())
         .unwrap();
 
     let pipe = long_pipeline();
 
     b.iter(|| {
-        let _: () = runtime
-            .block_on(async { pipe.query_async(&mut con).await })
+        let _: () = task::block_on(async { pipe.query_async(&mut con).await })
             .unwrap();
     });
 }
 
 fn bench_multiplexed_async_implicit_pipeline(b: &mut Bencher) {
     let client = get_client();
-    let mut runtime = current_thread_runtime();
-    let con = runtime
-        .block_on(client.get_multiplexed_tokio_connection())
+    let con = task::block_on(client.get_multiplexed_connection())
         .unwrap();
 
     let cmds: Vec<_> = (0..PIPELINE_QUERIES)
@@ -162,8 +154,7 @@ fn bench_multiplexed_async_implicit_pipeline(b: &mut Bencher) {
         .collect::<Vec<_>>();
 
     b.iter(|| {
-        let _: () = runtime
-            .block_on(async {
+        let _: () = task::block_on(async {
                 cmds.iter()
                     .zip(&mut connections)
                     .map(|(cmd, con)| cmd.query_async(con))

@@ -6,16 +6,17 @@ use std::net::ToSocketAddrs;
 use std::pin::Pin;
 
 #[cfg(unix)]
-use tokio::net::UnixStream;
+use async_std::os::unix::net::UnixStream;
 
-use tokio::{
-    io::{AsyncBufRead, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader, BufWriter},
+use async_std::{
+    io::{BufReader, BufWriter},
     net::TcpStream,
-    sync::{mpsc, oneshot},
 };
-use tokio_util::codec::Decoder;
+use futures_codec::Framed;
 
 use futures::{
+    io::{AsyncBufRead, AsyncRead, AsyncWrite, AsyncWriteExt},
+    channel::{mpsc, oneshot},
     future::Either,
     prelude::*,
     ready,
@@ -61,11 +62,11 @@ impl AsyncWrite for ActualConnection {
         }
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut task::Context) -> Poll<io::Result<()>> {
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut task::Context) -> Poll<io::Result<()>> {
         match &mut *self {
-            ActualConnection::Tcp(r) => Pin::new(r).poll_shutdown(cx),
+            ActualConnection::Tcp(r) => Pin::new(r).poll_close(cx),
             #[cfg(unix)]
-            ActualConnection::Unix(r) => Pin::new(r).poll_shutdown(cx),
+            ActualConnection::Unix(r) => Pin::new(r).poll_close(cx),
         }
     }
 }
@@ -442,7 +443,6 @@ where
         T: Send + 'static,
         T::Item: Send,
         T::Error: Send,
-        T::Error: ::std::fmt::Debug,
     {
         const BUFFER_SIZE: usize = 50;
         let (sender, receiver) = mpsc::channel(BUFFER_SIZE);
@@ -505,20 +505,20 @@ impl MultiplexedConnection {
         let (pipeline, driver) = match con.con {
             #[cfg(not(unix))]
             ActualConnection::Tcp(tcp) => {
-                let codec = ValueCodec::default().framed(tcp.into_inner().into_inner());
+                let codec = Framed::new(tcp, ValueCodec::default());
                 let (pipeline, driver) = Pipeline::new(codec);
                 (pipeline, driver)
             }
 
             #[cfg(unix)]
             ActualConnection::Tcp(tcp) => {
-                let codec = ValueCodec::default().framed(tcp.into_inner().into_inner());
+                let codec = Framed::new(tcp, ValueCodec::default());
                 let (pipeline, driver) = Pipeline::new(codec);
                 (pipeline, Either::Left(driver))
             }
             #[cfg(unix)]
             ActualConnection::Unix(unix) => {
-                let codec = ValueCodec::default().framed(unix.into_inner().into_inner());
+                let codec = Framed::new(unix, ValueCodec::default());
                 let (pipeline, driver) = Pipeline::new(codec);
                 (pipeline, Either::Right(driver))
             }

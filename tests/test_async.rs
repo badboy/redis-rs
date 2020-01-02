@@ -3,6 +3,7 @@ use redis;
 use futures;
 
 use futures::{future, prelude::*};
+use async_std::task::block_on;
 
 use crate::support::*;
 
@@ -15,7 +16,7 @@ fn test_args() {
     let ctx = TestContext::new();
     let connect = ctx.async_connection();
 
-    block_on_all(connect.and_then(|mut con| {
+    block_on(connect.and_then(|mut con| {
         async move {
             let () = redis::cmd("SET")
                 .arg("key1")
@@ -43,7 +44,7 @@ fn dont_panic_on_closed_multiplexed_connection() {
     let connect = ctx.multiplexed_async_connection();
     drop(ctx);
 
-    block_on_all(async move {
+    block_on(async move {
         connect
             .and_then(|con| {
                 async move {
@@ -82,7 +83,7 @@ fn dont_panic_on_closed_multiplexed_connection() {
 #[test]
 fn test_pipeline_transaction() {
     let ctx = TestContext::new();
-    block_on_all(async move {
+    block_on(async move {
         let mut con = ctx.async_connection().await?;
         let mut pipe = redis::pipe();
         pipe.atomic()
@@ -152,7 +153,7 @@ fn test_error(con: &MultiplexedConnection) -> impl Future<Output = RedisResult<(
 #[test]
 fn test_args_multiplexed_connection() {
     let ctx = TestContext::new();
-    block_on_all(async move {
+    block_on(async move {
         ctx.multiplexed_async_connection()
             .and_then(|con| {
                 let cmds = (0..100).map(move |i| test_cmd(&con, i));
@@ -169,7 +170,7 @@ fn test_args_multiplexed_connection() {
 #[test]
 fn test_args_with_errors_multiplexed_connection() {
     let ctx = TestContext::new();
-    block_on_all(async move {
+    block_on(async move {
         ctx.multiplexed_async_connection()
             .and_then(|con| {
                 let cmds = (0..100).map(move |i| {
@@ -195,7 +196,7 @@ fn test_args_with_errors_multiplexed_connection() {
 #[test]
 fn test_transaction_multiplexed_connection() {
     let ctx = TestContext::new();
-    block_on_all(async move {
+    block_on(async move {
         ctx.multiplexed_async_connection()
             .and_then(|con| {
                 let cmds = (0..100).map(move |i| {
@@ -244,7 +245,7 @@ fn test_script() {
 
     let ctx = TestContext::new();
 
-    block_on_all(async move {
+    block_on(async move {
         let mut con = ctx.multiplexed_async_connection().await?;
         let () = script1
             .key("key1")
@@ -269,7 +270,7 @@ fn test_script() {
 #[test]
 fn test_script_returning_complex_type() {
     let ctx = TestContext::new();
-    block_on_all(async {
+    block_on(async {
         let mut con = ctx.multiplexed_async_connection().await?;
         redis::Script::new("return {1, ARGV[1], true}")
             .arg("hello")

@@ -11,8 +11,8 @@ use futures::{
     future,
     task::{self, Poll},
 };
-use tokio::io::{AsyncBufRead, AsyncRead};
-use tokio_util::codec::{Decoder, Encoder};
+use futures::io::{AsyncBufRead, AsyncRead};
+use futures_codec::{Decoder, Encoder};
 
 use combine;
 use combine::byte::{byte, crlf, take_until_bytes};

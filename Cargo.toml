@@ -11,6 +11,9 @@ license = "BSD-3-Clause"
 readme = "README.md"
 edition = "2018"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 dtoa = "0.4"
 itoa = "0.4.3"
@@ -21,13 +24,11 @@ combine = "3.8.1"
 bytes = "0.5"
 futures = "0.3.0"
 pin-project = "0.4"
-tokio-util = { version = "0.2", features = ["codec"] }
-tokio = { version = "0.2", features = ["tcp", "uds", "io-util", "sync", "stream"] }
+async-std = { git = "https://github.com/badboy/async-std", branch = "impl-async-read-write-for-reverse" }
+futures_codec = "0.3.4"
 
 [features]
 default = [ "geospatial" ]
-
-tokio-rt-core = ["tokio/rt-core"]
 
 geospatial = []
 
@@ -37,19 +38,14 @@ net2 = "0.2"
 assert_approx_eq = "1.0"
 fnv = "1.0.5"
 criterion = "0.3"
-partial-io = { version = "0.3", features = ["tokio", "quickcheck"] }
+partial-io = { version = "0.3", features = ["quickcheck"] }
 quickcheck = "0.6"
-tokio = { version = "0.2", features = ["rt-core", "macros"] }
 # End of dev-dependencies
 
 
 [[test]]
 name = "test_async"
-required-features = ["tokio-rt-core"]
 
 [[bench]]
 name = "bench_basic"
 harness = false
-
-[package.metadata.docs.rs]
-all-features = true

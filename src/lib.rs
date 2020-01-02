@@ -292,7 +292,7 @@
 //! # Async
 //!
 //! In addition to the synchronous interface that's been explained above there also exists an
-//! asynchronous interface based on [`futures`][] and [`tokio`][].
+//! asynchronous interface based on [`futures`][] and [`async-std`][].
 //!
 //! This interface exists under the `aio` (async io) module and largely mirrors the synchronous
 //! with a few concessions to make it fit the constraints of `futures`.
@@ -301,8 +301,8 @@
 //! use futures::prelude::*;
 //! use redis::AsyncCommands;
 //!
-//! # #[tokio::main]
 //! # async fn main() -> redis::RedisResult<()> {
+//! # async_std::task::block_on(async move {
 //! let client = redis::Client::open("redis://127.0.0.1/").unwrap();
 //! let mut con = client.get_async_connection().await?;
 //!
@@ -316,11 +316,12 @@
 //!     .await;
 //! assert_eq!(result, Ok(("foo".to_string(), b"bar".to_vec())));
 //! Ok(())
+//! # })
 //! # }
 //! ```
 //!
 //! [`futures`]:https://crates.io/crates/futures
-//! [`tokio`]:https://tokio.rs
+//! [`async-std`]:https://async.rs
 //!
 //! ## Breaking Changes
 //!

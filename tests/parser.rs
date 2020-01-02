@@ -6,14 +6,18 @@ extern crate quickcheck;
 use std::{io, pin::Pin};
 
 use {
+    async_std::{
+        task::block_on,
+        io::BufReader,
+    },
     futures::task::{self, Poll},
+    futures::io::AsyncRead,
     partial_io::{GenWouldBlock, PartialOp, PartialWithErrors},
-    tokio::io::{AsyncRead, BufReader},
 };
 
 use redis::Value;
 
-use crate::support::{block_on_all, encode_value};
+use crate::support::encode_value;
 
 #[derive(Clone, Debug)]
 struct ArbitraryValue(Value);
@@ -129,7 +133,7 @@ quickcheck! {
         let mut reader = &encoded_input[..];
         let partial_reader = PartialAsyncRead { inner: &mut reader, ops: Box::new(seq.into_iter()) };
 
-        let result = block_on_all(redis::parse_redis_value_async(BufReader::new(partial_reader)));
+        let result = block_on(redis::parse_redis_value_async(BufReader::new(partial_reader)));
         assert!(result.as_ref().is_ok(), "{}", result.unwrap_err());
         assert_eq!(
             result.unwrap(),
